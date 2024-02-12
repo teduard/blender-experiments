@@ -1,0 +1,184 @@
+<html>
+<head>
+	<title>BlendFinder results</title>
+
+	<script type="importmap">
+	  {
+		"imports": {
+		  "three": "https://unpkg.com/three@0.161.0/build/three.module.js",
+		  "three/addons/": "https://unpkg.com/three@0.161.0/examples/jsm/"
+		}
+	  }
+	</script>
+
+	<script type="module">
+		const wPadding = 340, hPadding = 15;
+		import * as THREE from 'three';
+		import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+		import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+		import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+
+		let camera, scene, renderer;
+
+		function init(index = 0) {
+
+			const container = document.createElement( 'div' );
+			document.getElementById("viewer").appendChild(container)
+
+			camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 0x10000);
+			camera.position.set( - 2, 10, 2 );
+
+			scene = new THREE.Scene();
+
+			new RGBELoader()
+				.load( '../assets/evening_road_01_puresky_2k.hdr', function ( texture ) {
+					texture.mapping = THREE.EquirectangularReflectionMapping;
+					scene.background = texture;
+					scene.environment = texture;
+					render();
+
+					const loader = new GLTFLoader();
+					loader.load( `result_${index}/object.gltf`, async function ( gltf ) {
+
+					const model = gltf.scene;
+					await renderer.compileAsync( model, camera, scene );
+					scene.add( model );
+					render();
+
+					} );
+
+				} );
+
+			renderer = new THREE.WebGLRenderer( { antialias: true } );
+			renderer.setPixelRatio( window.devicePixelRatio );
+			renderer.setSize( window.innerWidth-wPadding, window.innerHeight-hPadding );
+			renderer.toneMapping = THREE.ACESFilmicToneMapping;
+			renderer.toneMappingExposure = 1;
+			container.appendChild( renderer.domElement );
+
+			const controls = new OrbitControls( camera, renderer.domElement );
+			controls.addEventListener( 'change', render );
+
+			controls.update();
+
+			window.addEventListener( 'resize', onWindowResize );
+		}
+
+		function onWindowResize() {
+			camera.aspect = window.innerWidth / window.innerHeight;
+			camera.updateProjectionMatrix();
+
+			renderer.setSize( window.innerWidth-wPadding, window.innerHeight -hPadding);
+
+			render();
+		}
+
+		function render() {
+			renderer.render( scene, camera );
+		}
+
+		document.getElementById("blendList").addEventListener("click",function(e) {
+			let listItem = event.target.closest("li");
+			let blendIndex = listItem.getAttribute('data-item');
+
+			const myNode = document.getElementById("viewer");
+				myNode.innerHTML = '';
+				init(blendIndex);
+				render();
+		});
+		
+		init();
+
+	</script>
+	
+	<style>
+		#content {
+			display: flex;
+			flex-direction: row;
+			width: 100%;
+			height: 100%;
+		}
+
+		#panel {
+			width: 300px;
+			display: flex;
+			flex-direction: column;
+
+			border-right: 1px solid #ccc;
+			background: #eee;
+			height: 100%;
+			padding-right: 10px;
+		}
+
+		#header {
+			display: flex;
+			height: 50px;
+			border-bottom: 1px solid #ccc;
+			margin: 10px auto;
+			padding-bottom: 10px;
+
+		}
+
+		#sidebar {
+			display: flex;
+			flex-direction: column;
+			width: 300px;
+			overflow: auto;
+		}
+
+		#viewer {
+			border: 2px solid #ccc;
+			display: flex;
+
+
+			height:100%;
+			width: calc(100% - 310px);
+			margin-left:10px;
+		}
+
+		#blendList {
+			list-style-type:none;
+			margin: 0;
+			padding: 0;
+		}
+
+		.item {
+			border-bottom: 1px solid #ccc;
+			padding-bottom: 10px;
+			margin: 0px auto;
+			width: 100%;
+			text-align: center;
+			padding-bottom: 10px;
+			padding-top: 10px;
+		}
+
+		.item img {
+			width: 275px;
+		}
+
+		.title {
+			inline-size: 127px;
+			overflow: hidden;
+			display: block;
+			width: 272px;
+			word-break: break-all;
+			padding-bottom: 5px;
+		}
+	</style>
+</head>
+
+<body>
+	<div id="content">
+		<div id="panel">
+			<div id="header">
+				<h1>BlendFinder results</h1>
+			</div>
+			<div id="sidebar">
+				<ul id="blendList">
+					#CONTENT#
+				</ul>
+			</div>
+		</div>
+		<div id="viewer"/>
+	</div>
+</html>
